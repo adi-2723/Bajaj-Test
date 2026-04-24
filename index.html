@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+  <head>
+    <title>BFHL API Tester</title>
+  </head>
+  <body>
+    <h2>BFHL API Tester</h2>
+
+    <textarea id="input" rows="6" cols="50">
+["A->B","A->C","B->D","C->E"]
+  </textarea
+    >
+    <br /><br />
+
+    <button onclick="sendData()">Submit</button>
+
+    <pre id="output"></pre>
+
+    <script>
+      async function sendData() {
+        const input = document.getElementById("input").value;
+        const data = JSON.parse(input);
+
+        const res = await fetch("https://bfhl-backend-d4z4.onrender.com/bfhl", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ data }),
+        });
+
+        const result = await res.json();
+        document.getElementById("output").innerText = JSON.stringify(
+          result,
+          null,
+          2,
+        );
+      }
+    </script>
+  </body>
+</html>
