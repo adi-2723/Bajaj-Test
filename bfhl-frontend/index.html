@@ -1,26 +1,25 @@
-<!doctype html>
-<html>
-  <head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BFHL API Tester</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
+    <link rel="stylesheet" href="style.css">
+</head>
 
-  <body>
+<body>
+
     <div class="container">
-      <h2>🚀 BFHL API Tester</h2>
+        <h1>BFHL API Tester</h1>
 
-      <textarea id="input">
-["A->B","A->C","B->D","C->E"]
-    </textarea
-      >
+        <textarea id="inputData">["A->B","A->C","B->D","C->E"]</textarea>
 
-      <button onclick="sendData()">Submit</button>
-      <button onclick="copyOutput()">Copy Output</button>
-      <button onclick="clearInput()">Clear</button>
+        <button onclick="sendData()">Submit</button>
 
-      <pre id="output">Response will appear here...</pre>
+        <pre id="output"></pre>
     </div>
 
     <script src="script.js"></script>
-  </body>
+
+</body>
 </html>

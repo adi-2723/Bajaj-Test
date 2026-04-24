@@ -19,7 +19,6 @@ app.post("/bfhl", (req, res) => {
   const seen = new Set();
   const regex = /^[A-Z]->[A-Z]$/;
 
-  // STEP 1: Validate + duplicates
   for (let entry of data) {
     const trimmed = entry.trim();
 
@@ -37,7 +36,6 @@ app.post("/bfhl", (req, res) => {
     }
   }
 
-  // STEP 2: Build graph
   const graph = {};
   const childSet = new Set();
 
@@ -50,7 +48,6 @@ app.post("/bfhl", (req, res) => {
     childSet.add(child);
   }
 
-  // STEP 3: Collect nodes
   const allNodes = new Set();
   for (let edge of validEdges) {
     const [p, c] = edge.split("->");
@@ -58,7 +55,6 @@ app.post("/bfhl", (req, res) => {
     allNodes.add(c);
   }
 
-  // STEP 4: Find roots
   const roots = [];
   for (let node of allNodes) {
     if (!childSet.has(node)) {
@@ -74,7 +70,6 @@ app.post("/bfhl", (req, res) => {
 
   const hierarchies = [];
 
-  // DFS
   function dfs(node, visited, stack) {
     if (stack.has(node)) return { cycle: true, depth: 0 };
     if (visited.has(node)) return { cycle: false, depth: 0 };
@@ -105,7 +100,6 @@ app.post("/bfhl", (req, res) => {
     };
   }
 
-  // STEP 5: Trees
   for (let root of roots) {
     if (visitedGlobal.has(root)) continue;
 
@@ -141,7 +135,6 @@ app.post("/bfhl", (req, res) => {
     }
   }
 
-  // STEP 6: Proper cycle grouping
   const remaining = [...allNodes].filter((n) => !visitedGlobal.has(n));
   const cycleVisited = new Set();
 
