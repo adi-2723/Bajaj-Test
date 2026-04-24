@@ -2,15 +2,30 @@ const express = require("express");
 const cors = require("cors");
 
 const app = express();
-app.use(cors());
+
+// ✅ Proper CORS setup (IMPORTANT)
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type"]
+}));
+
+app.options("*", cors());
+
 app.use(express.json());
 
+// ✅ Test route
 app.get("/", (req, res) => {
   res.send("API is running 🚀");
 });
 
+// ✅ MAIN API
 app.post("/bfhl", (req, res) => {
   const { data } = req.body;
+
+  if (!data || !Array.isArray(data)) {
+    return res.status(400).json({ error: "Invalid input" });
+  }
 
   const validEdges = [];
   const invalidEntries = [];
@@ -131,58 +146,6 @@ app.post("/bfhl", (req, res) => {
         root,
         tree: { [root]: result.tree },
         depth: result.depth,
-      });
-    }
-  }
-
-  const remaining = [...allNodes].filter((n) => !visitedGlobal.has(n));
-  const cycleVisited = new Set();
-
-  for (let node of remaining) {
-    if (cycleVisited.has(node)) continue;
-
-    const stack = new Set();
-    const visited = new Set();
-
-    function detectCycle(n) {
-      if (stack.has(n)) return [true, n];
-      if (visited.has(n)) return [false, null];
-
-      visited.add(n);
-      stack.add(n);
-
-      if (graph[n]) {
-        for (let child of graph[n]) {
-          const [found, start] = detectCycle(child);
-          if (found) return [true, start];
-        }
-      }
-
-      stack.delete(n);
-      return [false, null];
-    }
-
-    const [hasCycle, startNode] = detectCycle(node);
-
-    if (hasCycle) {
-      totalCycles++;
-
-      // collect cycle nodes
-      const cycleNodes = [];
-      let curr = startNode;
-
-      do {
-        cycleNodes.push(curr);
-        cycleVisited.add(curr);
-        curr = graph[curr][0];
-      } while (curr !== startNode && !cycleNodes.includes(curr));
-
-      cycleNodes.sort();
-      const root = cycleNodes[0];
-
-      hierarchies.push({
-        root,
-        has_cycle: true,
       });
     }
   }
