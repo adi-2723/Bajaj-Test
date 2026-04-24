@@ -3,29 +3,20 @@ const cors = require("cors");
 
 const app = express();
 
-// ✅ CORS FIX (IMPORTANT)
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"]
-}));
-
+app.use(cors());
 app.use(express.json());
 
-// ✅ TEST ROUTE
 app.get("/", (req, res) => {
   res.send("API is running 🚀");
 });
 
-// ✅ MAIN API
 app.post("/bfhl", (req, res) => {
   try {
     const { data } = req.body;
 
-    // ✅ INPUT VALIDATION (prevents 500 error)
     if (!data || !Array.isArray(data)) {
       return res.status(400).json({
-        error: "Invalid input. 'data' must be an array"
+        error: "Invalid input. 'data' must be array"
       });
     }
 
@@ -36,6 +27,7 @@ app.post("/bfhl", (req, res) => {
     const seen = new Set();
     const regex = /^[A-Z]->[A-Z]$/;
 
+    // ✅ VALIDATION
     for (let entry of data) {
       const trimmed = entry.trim();
 
@@ -43,9 +35,7 @@ app.post("/bfhl", (req, res) => {
         invalidEntries.push(entry);
       } else {
         if (seen.has(trimmed)) {
-          if (!duplicateEdges.includes(trimmed)) {
-            duplicateEdges.push(trimmed);
-          }
+          duplicateEdges.push(trimmed);
         } else {
           seen.add(trimmed);
           validEdges.push(trimmed);
@@ -53,117 +43,64 @@ app.post("/bfhl", (req, res) => {
       }
     }
 
+    // ✅ BUILD GRAPH
     const graph = {};
-    const childSet = new Set();
-
     for (let edge of validEdges) {
-      const [parent, child] = edge.split("->");
-
-      if (!graph[parent]) graph[parent] = [];
-      graph[parent].push(child);
-
-      childSet.add(child);
+      const [u, v] = edge.split("->");
+      if (!graph[u]) graph[u] = [];
+      graph[u].push(v);
     }
 
-    const allNodes = new Set();
-    for (let edge of validEdges) {
-      const [p, c] = edge.split("->");
-      allNodes.add(p);
-      allNodes.add(c);
-    }
+    // ✅ SIMPLE TREE + CYCLE DETECTION (SAFE)
+    const visited = new Set();
+    const recStack = new Set();
 
-    const roots = [];
-    for (let node of allNodes) {
-      if (!childSet.has(node)) {
-        roots.push(node);
-      }
-    }
-
-    const visitedGlobal = new Set();
     let totalCycles = 0;
     let totalTrees = 0;
-    let largestDepth = 0;
-    let largestRoot = "";
 
-    const hierarchies = [];
-
-    function dfs(node, visited, stack) {
-      if (stack.has(node)) return { cycle: true, depth: 0 };
-      if (visited.has(node)) return { cycle: false, depth: 0 };
+    function hasCycle(node) {
+      if (recStack.has(node)) return true;
+      if (visited.has(node)) return false;
 
       visited.add(node);
-      stack.add(node);
-
-      let maxDepth = 1;
-      let hasCycle = false;
-      let subtree = {};
+      recStack.add(node);
 
       if (graph[node]) {
-        for (let child of graph[node]) {
-          const res = dfs(child, visited, stack);
-          if (res.cycle) hasCycle = true;
-
-          maxDepth = Math.max(maxDepth, 1 + res.depth);
-          subtree[child] = res.tree || {};
+        for (let nei of graph[node]) {
+          if (hasCycle(nei)) return true;
         }
       }
 
-      stack.delete(node);
-
-      return {
-        cycle: hasCycle,
-        depth: maxDepth,
-        tree: subtree,
-      };
+      recStack.delete(node);
+      return false;
     }
 
-    for (let root of roots) {
-      if (visitedGlobal.has(root)) continue;
+    // check all nodes
+    const nodes = new Set();
+    validEdges.forEach(e => {
+      const [a, b] = e.split("->");
+      nodes.add(a);
+      nodes.add(b);
+    });
 
-      const visited = new Set();
-      const stack = new Set();
-
-      const result = dfs(root, visited, stack);
-
-      visited.forEach((n) => visitedGlobal.add(n));
-
-      if (result.cycle) {
-        totalCycles++;
-        hierarchies.push({
-          root,
-          has_cycle: true,
-        });
-      } else {
-        totalTrees++;
-
-        if (
-          result.depth > largestDepth ||
-          (result.depth === largestDepth && root < largestRoot)
-        ) {
-          largestDepth = result.depth;
-          largestRoot = root;
-        }
-
-        hierarchies.push({
-          root,
-          tree: { [root]: result.tree },
-          depth: result.depth,
-        });
+    nodes.forEach(node => {
+      if (!visited.has(node)) {
+        if (hasCycle(node)) totalCycles++;
+        else totalTrees++;
       }
-    }
+    });
 
     res.json({
       user_id: "jaditya_27082005",
       email_id: "ja6645@srmist.edu.in",
       college_roll_number: "RA2311003010280",
-      hierarchies,
+      valid_edges: validEdges,
       invalid_entries: invalidEntries,
       duplicate_edges: duplicateEdges,
       summary: {
         total_trees: totalTrees,
-        total_cycles: totalCycles,
-        largest_tree_root: largestRoot,
-      },
+        total_cycles: totalCycles
+      }
     });
 
   } catch (err) {
