@@ -1,41 +1,46 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-  <head>
-    <title>BFHL API Tester</title>
-  </head>
-  <body>
-    <h2>BFHL API Tester</h2>
+<head>
+  <title>BFHL API Tester</title>
+</head>
+<body>
 
-    <textarea id="input" rows="6" cols="50">
+  <h1>BFHL API Tester</h1>
+
+  <textarea id="inputData" rows="5" cols="50">
 ["A->B","A->C","B->D","C->E"]
-  </textarea
-    >
-    <br /><br />
+  </textarea>
 
-    <button onclick="sendData()">Submit</button>
+  <br><br>
 
-    <pre id="output"></pre>
+  <button onclick="sendData()">Submit</button>
 
-    <script>
-      async function sendData() {
-        const input = document.getElementById("input").value;
-        const data = JSON.parse(input);
+  <pre id="output"></pre>
 
-        const res = await fetch("https://bfhl-backend-d4z4.onrender.com/bfhl", {
+  <script>
+    async function sendData() {
+      const input = document.getElementById("inputData").value;
+      const output = document.getElementById("output");
+
+      try {
+        const response = await fetch("https://bfhl-backend-d424.onrender.com/bfhl", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ data }),
+          body: JSON.stringify({
+            data: JSON.parse(input),
+          }),
         });
 
-        const result = await res.json();
-        document.getElementById("output").innerText = JSON.stringify(
-          result,
-          null,
-          2,
-        );
+        const result = await response.json();
+        output.innerText = JSON.stringify(result, null, 2);
+
+      } catch (error) {
+        output.innerText = "Error: " + error.message;
       }
-    </script>
-  </body>
+    }
+  </script>
+
+</body>
 </html>
