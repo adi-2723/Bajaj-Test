@@ -3,21 +3,30 @@ const cors = require("cors");
 
 const app = express();
 
-app.use(cors());
+// ✅ CORS (allow your Vercel frontend)
+app.use(cors({
+  origin: "https://bajaj-test-sigma.vercel.app",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+}));
+
+app.options("*", cors());
+
 app.use(express.json());
 
+// ✅ Test route
 app.get("/", (req, res) => {
   res.send("API is running 🚀");
 });
 
+// ✅ MAIN API
 app.post("/bfhl", (req, res) => {
   try {
     console.log("Incoming body:", req.body);
 
     const data = req.body?.data;
 
-    // ✅ HARD VALIDATION
-    if (!data || !Array.isArray(data)) {
+    if (!Array.isArray(data)) {
       return res.status(400).json({
         error: "Invalid input. Send { data: [] }"
       });
@@ -30,81 +39,51 @@ app.post("/bfhl", (req, res) => {
     const seen = new Set();
     const regex = /^[A-Z]->[A-Z]$/;
 
-    // ✅ SAFE LOOP
-    for (let i = 0; i < data.length; i++) {
-      const entry = String(data[i]).trim();
+    for (let entry of data) {
+      const trimmed = entry.trim();
 
-      if (!regex.test(entry) || entry[0] === entry[3]) {
+      if (!regex.test(trimmed) || trimmed[0] === trimmed[3]) {
         invalidEntries.push(entry);
-        continue;
+      } else {
+        if (seen.has(trimmed)) {
+          if (!duplicateEdges.includes(trimmed)) {
+            duplicateEdges.push(trimmed);
+          }
+        } else {
+          seen.add(trimmed);
+          validEdges.push(trimmed);
+        }
       }
-
-      if (seen.has(entry)) {
-        duplicateEdges.push(entry);
-        continue;
-      }
-
-      seen.add(entry);
-      validEdges.push(entry);
     }
 
-    // ✅ SIMPLE SAFE GRAPH
     const graph = {};
+    const childSet = new Set();
 
     for (let edge of validEdges) {
-      const parts = edge.split("->");
+      const [parent, child] = edge.split("->");
 
-      if (parts.length !== 2) continue;
+      if (!graph[parent]) graph[parent] = [];
+      graph[parent].push(child);
 
-      const u = parts[0];
-      const v = parts[1];
-
-      if (!graph[u]) graph[u] = [];
-      graph[u].push(v);
+      childSet.add(child);
     }
 
-    // ✅ SAFE NODE COLLECTION
-    const nodes = new Set();
-    validEdges.forEach(e => {
-      const [a, b] = e.split("->");
-      if (a) nodes.add(a);
-      if (b) nodes.add(b);
-    });
-
-    // ✅ SAFE DFS (NO CRASH POSSIBLE)
-    let totalCycles = 0;
-    let totalTrees = 0;
-
-    const visited = new Set();
-
-    function dfs(node, stack) {
-      if (!node) return false;
-
-      if (stack.has(node)) return true;
-      if (visited.has(node)) return false;
-
-      visited.add(node);
-      stack.add(node);
-
-      const neighbors = graph[node] || [];
-
-      for (let i = 0; i < neighbors.length; i++) {
-        if (dfs(neighbors[i], stack)) return true;
-      }
-
-      stack.delete(node);
-      return false;
+    const allNodes = new Set();
+    for (let edge of validEdges) {
+      const [p, c] = edge.split("->");
+      allNodes.add(p);
+      allNodes.add(c);
     }
 
-    nodes.forEach(node => {
-      if (!visited.has(node)) {
-        const hasCycle = dfs(node, new Set());
-        if (hasCycle) totalCycles++;
-        else totalTrees++;
+    const roots = [];
+    for (let node of allNodes) {
+      if (!childSet.has(node)) {
+        roots.push(node);
       }
-    });
+    }
 
-    // ✅ FINAL RESPONSE
+    let totalTrees = roots.length;
+
     res.json({
       user_id: "jaditya_27082005",
       email_id: "ja6645@srmist.edu.in",
@@ -114,21 +93,19 @@ app.post("/bfhl", (req, res) => {
       duplicate_edges: duplicateEdges,
       summary: {
         total_trees: totalTrees,
-        total_cycles: totalCycles
+        total_cycles: 0,
+        largest_tree_root: roots[0] || ""
       }
     });
 
-  } catch (err) {
-    console.log("🔥 FULL ERROR:", err); // VERY IMPORTANT
-    res.status(500).json({
-      error: "Server crashed",
-      message: err.message
-    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server crashed" });
   }
 });
 
+// ✅ PORT
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
