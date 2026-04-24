@@ -12,11 +12,14 @@ app.get("/", (req, res) => {
 
 app.post("/bfhl", (req, res) => {
   try {
-    const { data } = req.body;
+    console.log("Incoming body:", req.body);
 
+    const data = req.body?.data;
+
+    // ✅ HARD VALIDATION
     if (!data || !Array.isArray(data)) {
       return res.status(400).json({
-        error: "Invalid input. 'data' must be array"
+        error: "Invalid input. Send { data: [] }"
       });
     }
 
@@ -27,68 +30,81 @@ app.post("/bfhl", (req, res) => {
     const seen = new Set();
     const regex = /^[A-Z]->[A-Z]$/;
 
-    // ✅ VALIDATE
-    for (let entry of data) {
-      const trimmed = entry.trim();
+    // ✅ SAFE LOOP
+    for (let i = 0; i < data.length; i++) {
+      const entry = String(data[i]).trim();
 
-      if (!regex.test(trimmed) || trimmed[0] === trimmed[3]) {
+      if (!regex.test(entry) || entry[0] === entry[3]) {
         invalidEntries.push(entry);
-      } else {
-        if (seen.has(trimmed)) {
-          duplicateEdges.push(trimmed);
-        } else {
-          seen.add(trimmed);
-          validEdges.push(trimmed);
-        }
+        continue;
       }
+
+      if (seen.has(entry)) {
+        duplicateEdges.push(entry);
+        continue;
+      }
+
+      seen.add(entry);
+      validEdges.push(entry);
     }
 
-    // ✅ BUILD GRAPH
+    // ✅ SIMPLE SAFE GRAPH
     const graph = {};
-    validEdges.forEach(edge => {
-      const [u, v] = edge.split("->");
+
+    for (let edge of validEdges) {
+      const parts = edge.split("->");
+
+      if (parts.length !== 2) continue;
+
+      const u = parts[0];
+      const v = parts[1];
+
       if (!graph[u]) graph[u] = [];
       graph[u].push(v);
+    }
+
+    // ✅ SAFE NODE COLLECTION
+    const nodes = new Set();
+    validEdges.forEach(e => {
+      const [a, b] = e.split("->");
+      if (a) nodes.add(a);
+      if (b) nodes.add(b);
     });
 
-    // ✅ SAFE CYCLE DETECTION (NO CRASH)
-    const visited = new Set();
-    const stack = new Set();
-
+    // ✅ SAFE DFS (NO CRASH POSSIBLE)
     let totalCycles = 0;
     let totalTrees = 0;
 
-    function dfs(node) {
-      if (stack.has(node)) return true; // cycle
+    const visited = new Set();
+
+    function dfs(node, stack) {
+      if (!node) return false;
+
+      if (stack.has(node)) return true;
       if (visited.has(node)) return false;
 
       visited.add(node);
       stack.add(node);
 
-      if (graph[node]) {
-        for (let nei of graph[node]) {
-          if (dfs(nei)) return true;
-        }
+      const neighbors = graph[node] || [];
+
+      for (let i = 0; i < neighbors.length; i++) {
+        if (dfs(neighbors[i], stack)) return true;
       }
 
       stack.delete(node);
       return false;
     }
 
-    const nodes = new Set();
-    validEdges.forEach(e => {
-      const [a, b] = e.split("->");
-      nodes.add(a);
-      nodes.add(b);
-    });
-
     nodes.forEach(node => {
       if (!visited.has(node)) {
-        if (dfs(node)) totalCycles++;
+        const hasCycle = dfs(node, new Set());
+        if (hasCycle) totalCycles++;
         else totalTrees++;
       }
     });
 
+    // ✅ FINAL RESPONSE
     res.json({
       user_id: "jaditya_27082005",
       email_id: "ja6645@srmist.edu.in",
@@ -103,8 +119,11 @@ app.post("/bfhl", (req, res) => {
     });
 
   } catch (err) {
-    console.log("ERROR:", err);
-    res.status(500).json({ error: "Server crashed" });
+    console.log("🔥 FULL ERROR:", err); // VERY IMPORTANT
+    res.status(500).json({
+      error: "Server crashed",
+      message: err.message
+    });
   }
 });
 
