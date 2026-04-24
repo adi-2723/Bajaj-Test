@@ -5,9 +5,9 @@
 </head>
 <body>
 
-  <h1>BFHL API Tester Clean</h1>
+  <h1>BFHL API Tester</h1>
 
-  <textarea id="inputData" rows="5" cols="50">
+  <textarea id="input" rows="5" cols="50">
 ["A->B","A->C","B->D","C->E"]
   </textarea>
 
@@ -19,18 +19,18 @@
 
   <script>
     async function sendData() {
-      const input = document.getElementById("inputData").value;
+      const input = document.getElementById("input").value;
       const output = document.getElementById("output");
 
       try {
-        const response = await fetch("https://bfhl-backend-d424.onrender.com/bfhl", {
+        const response = await fetch("https://bfhl-backend-d4z4.onrender.com/bfhl", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            data: JSON.parse(input),
-          }),
+            data: JSON.parse(input)
+          })
         });
 
         const result = await response.json();
